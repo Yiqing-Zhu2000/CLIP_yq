@@ -45,6 +45,19 @@ with torch.no_grad():
 print("Label probs:", probs)  # prints: [[0.9927937  0.00421068 0.00299572]]
 ```
 
+## Yiqing demo
+In order to use ComputeCanada to run project, here is the demo.
+Here I write the loadClipModel.py to load the model I want to use. 
+1. zip the necessary data, models, and codes in this way
+```
+zip -r Tmp.zip clip houses patches_output tests CLIP.png hubconf.py requirements.txt yiqing_test.py yiqing_test2.py
+```
+2. For the cliptest2.sh file, I run my yiqing_test.py yiqing_test2.py together, and store the patches_output folder back. 
+```
+chmod 600 cliptest2.sh
+sbatch cliptest2.sh
+```
+
 
 ## API
 
