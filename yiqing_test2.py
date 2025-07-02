@@ -44,6 +44,7 @@ with torch.no_grad():
     probs = logits_per_image.softmax(dim=-1).cpu().numpy()
 
 # output
+print("Label probs:", probs)
 for i, prob in enumerate(probs):
     top_label = labels[np.argmax(prob)]
     print(f"Patch {i}: most likely -> {top_label} (confidence = {prob.max():.3f})")
