@@ -2,7 +2,14 @@
 from PIL import Image
 
 img1 = Image.open("houses/house1.jpg")
-img2 = Image.open("houses/house2.jpg")
+img2 = Image.open("patches_output/cifar100_3637.png")
+img3 = Image.open("houses/house_tree.jpg")
+img4 = Image.open("houses/house_largeTree.jpg")
 
-print("Image 1 size:", img1.size)  # 输出 (宽, 高)
-print("Image 2 size:", img2.size)
+
+print("Image house1 size:", img1.size)  # 输出 (宽, 高)
+print("Image patches_output/cifar100 size:", img2.size)
+print("house_tree", img3.size)
+print("house_largetree:", img4.size)
+
+
