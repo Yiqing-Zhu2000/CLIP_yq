@@ -1,5 +1,8 @@
 import torch
 import clip
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from PIL import Image
 import numpy as np
 import os
@@ -10,6 +13,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device, download_root="clip/models")
 
 # load image
+# image = Image.open("houses/house1.jpg").convert("RGB")
 image = Image.open("houses/house1.jpg").convert("RGB")
 
 # define patch（can change size）
@@ -27,8 +31,15 @@ for i, patch in enumerate(patches):
     patch.save(patch_path)
 
 # text label
-labels = ["a house", "a tree", "a dog", "nothing"]
+# labels = ["a house", "a tree", "a dog", "nothing"]
+labels = ["a house", "a bicycle", "a dog", "pumpkins","rail fence"]
+
 text_tokens = clip.tokenize(labels).to(device)
+
+# labelsUsed = ["a house", "a bicycle", "a dog", "pumpkins","rail fence"]
+# text_tokens = clip.tokenize(labelsUsed).to(device)
+# print("here")
+# print("text I used:", labelsUsed)
 
 # !! special! direct use the original image, can be commented out
 # patches = [image]
@@ -38,14 +49,23 @@ patch_tensors = torch.stack([preprocess(p) for p in patches]).to(device)
 
 # gogogo!
 with torch.no_grad():
+    # embedding value
     image_features = model.encode_image(patch_tensors)
+    print("image_feature size", image_features.shape)
     text_features = model.encode_text(text_tokens)
-    logits_per_image, _ = model(patch_tensors, text_tokens)
+    print("text_features size", text_features.shape)
+    logits_per_image, logits_per_text = model(patch_tensors, text_tokens)
+    print("after compare with text embedding:\n", logits_per_image)
+    # print("logit_per_image shape", logits_per_image.shape)
+    # print("After comp, logits_per_text", logits_per_text)
     probs = logits_per_image.softmax(dim=-1).cpu().numpy()
 
 # output
-print("Label probs:", probs)
+print("Labels", labels)
+# print("Label probs:", probs)
 for i, prob in enumerate(probs):
+    # print("for each label prob", sum(prob))
+    print("Label probs:", prob)  
     top_label = labels[np.argmax(prob)]
     print(f"Patch {i}: most likely -> {top_label} (confidence = {prob.max():.3f})")
 

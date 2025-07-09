@@ -7,6 +7,7 @@ from PIL import Image
 device = "cuda" if torch.cuda.is_available() else "cpu"
 # from models folder to find that model.pt
 model, preprocess = clip.load("ViT-B/32", device=device, download_root="clip/models")
+print("the model visual input resolution:", model.visual.input_resolution)
 
 image = preprocess(Image.open("CLIP.png")).unsqueeze(0).to(device)
 text = clip.tokenize(["a diagram", "a dog", "a cat"]).to(device)
