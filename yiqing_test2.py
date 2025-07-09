@@ -1,3 +1,4 @@
+# Can deal with batch of patches 
 import torch
 import clip
 import sys
@@ -32,8 +33,10 @@ for i, patch in enumerate(patches):
 
 # text label
 # labels = ["a house", "a tree", "a dog", "nothing"]
-labels = ["a house", "a bicycle", "a dog", "pumpkins","rail fence"]
+# labels = ["a house", "a bicycle", "a dog", "pumpkins","rail fence"]
 
+# how about no correct/suitable answer in label:
+labels = ["a cat", "a dog", "nothing"]
 text_tokens = clip.tokenize(labels).to(device)
 
 # labelsUsed = ["a house", "a bicycle", "a dog", "pumpkins","rail fence"]
