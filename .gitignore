@@ -14,3 +14,7 @@ Tmp.zip
 *.out
 
 house_patches_final/
+saved_max_patches/
+yoloOutput/
+output/yolo_boxed.jpg
+*.pt
