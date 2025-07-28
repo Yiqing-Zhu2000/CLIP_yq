@@ -1,3 +1,5 @@
+# based on our discussion, we need non-overlap crop patches as input for geo methods.
+# This file would stop updating for aftering get the setted thresholds.
 import torch
 import sys
 import os
