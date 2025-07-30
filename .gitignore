@@ -18,5 +18,5 @@ saved_max_patches/
 yoloOutput/
 images/
 output/yolo_boxed.jpg
-output/signal_vs_noise_thres/
 *.pt
+output/

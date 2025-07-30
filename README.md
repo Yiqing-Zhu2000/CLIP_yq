@@ -212,5 +212,36 @@ Note that the `C` value should be determined via a hyperparameter sweep using a 
 * [Hugging Face implementation of CLIP](https://huggingface.co/docs/transformers/model_doc/clip): for easier integration with the HF ecosystem
 
 
-## Some Tips for implements of non-overlap geo, and the YOLOCLIP method. 
+## Implements of pipelines for YOLO_CLIP and non-overlap geometric crop CLIP. 
+We use them on COCO Search18 dataset. Since I would use ComputeCanada to get results, here are steps for each pipelines
+
+### YOLO_CLIP (Set thresholds for 18 categories based on training data(70%))
+- Use ComputeCanada to get the similarity thresholds and store them into an `output/category_YOLOClip_thresholds.csv`.
+- prepare for submit to ComputeCanada.
+1. zip the necessary data, models, and codes in this way
+```
+zip -r Tmp.zip clip new_jsonFile yolov8x.pt COCOSearch18-images-TP.zip src pipelines requirements.txt 
+```
+
+2. For the `Set_18thresholdsYOLO.sh` file, I run my `pipelines/Set_18thresholdsYOLO.py`, and store the output folder back.
+```
+chmod 600 Set_18thresholdsYOLO.sh
+sbatch Set_18thresholdsYOLO.sh
+```
+
+### YOLO_CLIP (Check whether input ONE image contain the target category)
+- Use ComputeCanada to run `pipelines/YOLOclip.py` file, the thresholds for 18 COCO categories are from `output/category_YOLOClip_thresholds.csv`. If there are any updates to the set_thresholds method, make sure to also upload the new threshold values accordingly.
+1. zip the necessary data, models, and codes in this way.
+```
+zip -r Tmp.zip clip yolov8x.pt COCOSearch18-images-TP.zip src pipelines output requirements.txt
+```
+2. For the YOLOclip.sh.sh file, I run my YOLOclip.sh.py, print the results. Some output images for checking would be store back to local. 
+```
+chmod 600 YOLOclip.sh.sh
+sbatch YOLOclip.sh.sh
+```
+
+
+
+
 

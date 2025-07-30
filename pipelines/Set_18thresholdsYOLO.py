@@ -44,9 +44,9 @@ for task, items in task_to_items.items():
     signal_sims, noise_sims = [], []
 
     # ======= get text features for the task by CLIP ==========
-    traget_labels = [task]    # only the target task.
+    target_labels = [task]    # only the target task.
     # get clip text features
-    text_tokens = clip.tokenize(traget_labels).to(device)
+    text_tokens = clip.tokenize(target_labels).to(device)
     with torch.no_grad():
         text_features = Clip_model.encode_text(text_tokens)
         text_features /= text_features.norm(dim=-1, keepdim=True)
@@ -65,8 +65,10 @@ for task, items in task_to_items.items():
             print(f"Error on image {img_name}: {e}")
             continue
 
+        # Q: yolo detected pred_boxes still may have overlap cases, so how to decisde signal cases? 
+
         img = Image.open(img_path).convert("RGB")
-        yolo_square_patches = get_YOLOsquare_pacthes(img, pred_boxes)   # list of patches' images
+        yolo_square_patches = get_YOLOsquare_pacthes(img, pred_boxes)   # list of square patches' images
 
         # for each img for this task, based on yolo pred_boxes to match with ground truth bbox for img
         # get the most matching yolo box by iou, the corresponding yolo square box is for signal sim.
@@ -99,7 +101,7 @@ for task, items in task_to_items.items():
     }
 
     # Plot and save figure
-    plot_path = os.path.join(output_dir,"signal_vs_noise_thres")
+    plot_path = os.path.join(output_dir,"signal_vs_noise_thresYOLO")
     plot_signal_vs_noise(signal_distri, noise_distri, midpoint_threshold, 
                          save_path=plot_path, filename = f"{task}_threshold_plot.png")
     

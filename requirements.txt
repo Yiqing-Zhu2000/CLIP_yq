@@ -1,6 +1,14 @@
+torch>=2.0.0
+torchvision
 ftfy
-packaging
 regex
 tqdm
-torch
-torchvision
+packaging
+
+# packages for YOLO and other things
+ultralytics>=8.0.0
+Pillow>=9.0.0
+gensim>=4.0.0
+numpy>=1.21.0
+matplotlib>=3.5.0
+scikit-learn>=1.0.0

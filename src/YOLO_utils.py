@@ -6,6 +6,7 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import defaultdict
+from src.Clip_utils import get_patches_vs_targets_simMatrix_Clip
 
 
 def save_YOLO_patches(img, boxes):
@@ -197,7 +198,7 @@ def get_YOLOsquare_pacthes(img, boxes):
         yolo_square_patches.append(padded_img)
     return yolo_square_patches
 
-# ============= for ONE of training images (YOLO square-> CLIP) ============
+# ============= for ONE of training images (related to method: YOLO square-> CLIP) ============
 def get_OneSignal_N_noiseSims_YOLOCLIP(bbox, pred_boxes,pred_labels, Clip_model, preprocess,
                                        yolo_square_patches, text_features, device):
     """
@@ -233,12 +234,13 @@ def get_OneSignal_N_noiseSims_YOLOCLIP(bbox, pred_boxes,pred_labels, Clip_model,
     sims = similarity_matrix[:, 0]   # only one text for target label here
     #print("sims:", sims)
     # the most similar one with this target 
-    max_sim, max_idx = sims.max(0)      # why clip here sims is tensor??? check??
+    max_sim, max_idx = sims.max(0)      # sims is tensor here
     signal_sim = max_sim
     l_noise_sims = sims.tolist()
     l_noise_sims.pop(max_idx)  # remove max_sim from original sims list. 
     
     return signal_sim, l_noise_sims
+
 # def get_OneSingal_N_noise_sim(target_vec, bbox, pred_boxes,pred_labels,glove_model):
 #     """
 #     target_vec: glove vec computed for the task label
@@ -306,29 +308,5 @@ def plot_signal_vs_noise(signal_distri, noise_distri, threshold, save_path=None,
     # plt.show()
     return 
 
-# =============== get similarities of labels vs. target word, For ONE image =========
-def labels_vs_target_similarity_glove(glove_model, YOLO_labels_unique, target_word):
-    """
-    This is for one image
-    Args:
-        glove_model: A pretrained GloVe model loaded with KeyedVectors.
-        YOLO_labels_unique: A list of unique predicted labels from YOLO for ONE image
-        target_word: The target category word to compare against.
-    Return:
-        found_overThred: A list of predicted labels whose cosine similarity with the target word.
-    """
-    # === for each label, compute similarity ===
-    labels_sims = []
-    target_vec = get_glove_vector(target_word, glove_model)
-    for label in YOLO_labels_unique:
-        label_vec = get_glove_vector(label, glove_model)
-        if label_vec is None:
-            print(f"'{label}' not in GloVe vocabulary, skipped.")
-            continue
-        # calculate cosine similarity 
-        sim = np.dot(label_vec, target_vec) / (np.linalg.norm(label_vec) * np.linalg.norm(target_vec))
-        print(f"{label} vs {target_word} similarity = {sim:.3f}")
 
-        labels_sims.append(sim)
-    return labels_sims
 
