@@ -23,7 +23,7 @@ output_dir = "output/"
 
 # Prepare, load clip model, read files
 os.makedirs(output_dir, exist_ok=True)
-grid_sizes = [1,2,3]
+grid_sizes = [1,2,3,4,5]
 device = "cuda" if torch.cuda.is_available() else "cpu"
 Clip_model, preprocess = clip.load("ViT-B/32", device=device, download_root="clip/models")
 

@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=4  # Cores proportional to GPUs: 6 on Cedar, 16 on Graham.
 #SBATCH --mem=16000M       # Memory proportional to GPUs: 32000 Cedar, 64000 Graham.
 #SBATCH --time=0-00:30
-#SBATCH --output=set_YOLO18thred-%j.out
+#SBATCH --output=set_GEO18thred-%j.out
 #SBATCH --mail-user=yiqing.zhu2@mail.mcgill.ca
 #SBATCH --mail-type=BEGIN,END,FAIL
 
@@ -29,7 +29,6 @@ pip install --no-index -r $SLURM_TMPDIR/requirements.txt
 # change current layer to $SLURM_TMPDIR
 cd $SLURM_TMPDIR
 unzip $SLURM_TMPDIR/COCOSearch18-images-TP.zip -d $SLURM_TMPDIR/
-python pipelines/Set_18thresholdsYOLO.py
-python pipelines/YOLOclip.py
+python pipelines/Set_18thresholdsGEO.py.py
 # copy the output csv and image resutls store back to my local place 
 cp -r output ~/projects/rrg-skrishna/yzhu439/CLIP_yq/

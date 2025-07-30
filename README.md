@@ -242,6 +242,27 @@ sbatch YOLOclip.sh
 ```
 
 
+### GEO_CLIP (Set thresholds for 18 categories based on training data(70%))
+- Use ComputeCanada to get the similarity thresholds and store them into an `output/category_GEOClip_thresholds.csv`.
+- prepare for submit to ComputeCanada.
+1. zip the necessary data, models, and codes in this way
+```
+zip -r Tmp.zip clip new_jsonFile COCOSearch18-images-TP.zip src pipelines requirements.txt 
+```
 
-
-
+2. For the `Set_18thresholdsGEO.sh` file, I run my `pipelines/Set_18thresholdsGEO.py`, and store the output folder back.
+```
+chmod 600 Set_18thresholdsGEO.sh
+sbatch Set_18thresholdsGEO.sh
+```
+### GEO_CLIP (input ONE new image, check whether containing the target category)
+- Use ComputeCanada to run `pipelines/clipPipeline.py` file, the thresholds for 18 COCO categories are from `output/category_GEOClip_thresholds.csv`. If there are any updates to the set_thresholds method, make sure to also upload the new threshold values accordingly.
+1. zip the necessary data, models, and codes in this way.
+```
+zip -r Tmp.zip clip COCOSearch18-images-TP.zip src pipelines output requirements.txt
+```
+2. For the clipPipeline.sh file, I run my clipPipeline.py, print the results. Some output images for checking would be store back to local. 
+```
+chmod 600 clipPipeline.sh
+sbatch clipPipeline.sh
+```
