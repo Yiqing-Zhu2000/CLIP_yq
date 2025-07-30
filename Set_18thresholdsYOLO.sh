@@ -30,6 +30,6 @@ pip install --no-index -r $SLURM_TMPDIR/requirements.txt
 cd $SLURM_TMPDIR
 unzip $SLURM_TMPDIR/COCOSearch18-images-TP.zip -d $SLURM_TMPDIR/
 python pipelines/Set_18thresholdsYOLO.py
-python pipelines/YOLOclip.py
+# python pipelines/YOLOclip.py
 # copy the output csv and image resutls store back to my local place 
 cp -r output ~/projects/rrg-skrishna/yzhu439/CLIP_yq/
