@@ -1,5 +1,4 @@
 import os
-from ultralytics import YOLO
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 import torch
 import sys
@@ -8,22 +7,23 @@ import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import clip
 from src.YOLO_utils import *
-from src.Clip_utils import to_numpy_array
+from src.Clip_utils import * 
+# most of grid crop functions are in Clip_utils 
 # Equal Error Rate
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve
 import pandas as pd
 import csv
 
-
+# Use geometric crop (grid split) original image then use CLIP to analyze
 # Paths
 COCO_img_dir = "images/"
 json_path = "new_jsonFile/coco18_train_split1_deduplicated_task_name_bbox.json"
 output_dir = "output/"
 
-# Prepare, load model, read files
+# Prepare, load clip model, read files
 os.makedirs(output_dir, exist_ok=True)
-YOLO_model = YOLO('yolov8x.pt')
+grid_sizes = [1,2,3]
 device = "cuda" if torch.cuda.is_available() else "cpu"
 Clip_model, preprocess = clip.load("ViT-B/32", device=device, download_root="clip/models")
 
@@ -38,7 +38,7 @@ task_to_items = group_by_task(deduplicated_data)
 thresholds_result = {}
 for task, items in task_to_items.items():
 
-    # items = items[:3]  # ← only use the first 3 samples of each category JUST for local test
+    items = items[:3]  # ← only use the first 3 samples of each category JUST for local test
     
     # for this task, collect singal vs noise sims.
     signal_sims, noise_sims = [], []
@@ -58,22 +58,27 @@ for task, items in task_to_items.items():
         img_path = os.path.join(COCO_img_dir, task, img_name)
 
         # One of images' path:
-        # run yolo for each img
-        try:
-            pred_boxes, pred_labels = YOLO_detect_labels_boxes(img_path, "noneed", YOLO_model)
-        except Exception as e:
-            print(f"Error on image {img_name}: {e}")
-            continue
-
-        # Q: yolo detected pred_boxes still may have overlap cases, so how to decisde signal cases? 
-
         img = Image.open(img_path).convert("RGB")
-        yolo_square_patches = get_YOLOsquare_pacthes(img, pred_boxes)   # list of square patches' images
+        # # run yolo for each img
+        # try:
+        #     pred_boxes, pred_labels = YOLO_detect_labels_boxes(img_path, "noneed", YOLO_model)
+        # except Exception as e:
+        #     print(f"Error on image {img_name}: {e}")
+        #     continue
+
+        ##############################################
+        #
+        # Step 1: Extract all patches and boxes
+        boxes, geo_patches, grids, positions = extract_grid_patches_and_boxes(img, grid_sizes)
+
+        # Q: grid boxes also would may have overlap cases, so how to decisde signal cases? 
+        # Q: if use non-overlapping grip split -> only one grid_size, but Q->which size would be suitable?
+        # As we don't know how large/where is the target object in img. 
 
         # for each img for this task, based on yolo pred_boxes to match with ground truth bbox for img
         # get the most matching yolo box by iou, the corresponding yolo square box is for signal sim.
-        signal_sim, list_noise_sims = get_OneSignal_N_noiseSims_CLIP(bbox, pred_boxes, Clip_model, preprocess,
-                                       yolo_square_patches, text_features, device)
+        signal_sim, list_noise_sims = get_OneSignal_N_noiseSims_CLIP(bbox, boxes, Clip_model, preprocess,
+                                       geo_patches, text_features, device)
         
         signal_sims.append(signal_sim)
         noise_sims.extend(list_noise_sims)
@@ -101,12 +106,12 @@ for task, items in task_to_items.items():
     }
 
     # Plot and save figure
-    plot_path = os.path.join(output_dir,"signal_vs_noise_thresYOLO")
+    plot_path = os.path.join(output_dir,"signal_vs_noise_thresGEO")
     plot_signal_vs_noise(signal_distri, noise_distri, midpoint_threshold, 
                          save_path=plot_path, filename = f"{task}_threshold_plot.png")
     
 # Save thresholds to CSV file
-csv_path = os.path.join(output_dir, "category_YOLOClip_thresholds.csv")
+csv_path = os.path.join(output_dir, "category_GEOClip_thresholds.csv")
 # Convert the thresholds dictionary to a DataFrame
 df = pd.DataFrame.from_dict(thresholds_result, orient="index")
 df.index.name = "category"  # set the row index name

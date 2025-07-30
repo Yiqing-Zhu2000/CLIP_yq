@@ -1,93 +1,89 @@
+import os
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 import torch
 import sys
-import os
+import numpy as np
+import pandas as pd
+import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import clip
-from PIL import Image
-import numpy as np
+from src.YOLO_utils import *
+from src.Clip_utils import * 
+# most of grid crop functions are in Clip_utils 
 
 # ========= CONFIG ==============
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/32", device=device, download_root="clip/models")
-image_path = "houses/house1.jpg"
+# Paths
+COCO_img_dir = "images/"
+thresholdsGEO_path = "output/category_GEOClip_thresholds.csv"
+output_dir = "output/"
 
-target_texts = ["a house", "a cat","vegetable", "a window", "pumpkins", "a bicycle", "a car","vehicle", "potted plant"]
+img_task = "bottle"
+img_name = "000000009527.jpg"
+img_path = os.path.join(COCO_img_dir, img_task, img_name)
+# img_path = os.path.join('houses', 'house1.jpg')
 
-#target_texts = ["a house", "a cat", "vegetable", "a window","pumpkins","a bicycle", "a car", "door", "mailbox"]
-threshold = 25.0  # as I use cosine sim * 100
-# threshold > 30.0, generally most exists. > 25.0, maybe match. (maybe use 26 or 27 would be better. )
+# Load model, read the thresholds file
+os.makedirs(output_dir, exist_ok=True)
 grid_sizes = [1,2,3,4,5]
-print("the target_texts :", target_texts)
-
-# load image, deal with text_tokens.
-image = Image.open(image_path).convert("RGB")
-W, H = image.size
-text_tokens = clip.tokenize(target_texts).to(device)
-
-with torch.no_grad():
-    text_features = model.encode_text(text_tokens)
-    text_features /= text_features.norm(dim=-1, keepdim=True)
-    
-
-# for the grid_sizes each patch
-all_image_features = []
-all_positions = []
-all_grids = []
-
-for grid in grid_sizes:
-    print(f"\n====== {grid}x{grid} Grid Split ======")
-
-    patch_width = W // grid
-    patch_height = H // grid
-    patches = []
-    positions = []
-
-    for row in range(grid):
-        for col in range(grid):
-            left = col * patch_width
-            top = row * patch_height
-            right = (col + 1) * patch_width if col < grid - 1 else W
-            bottom = (row + 1) * patch_height if row < grid - 1 else H
-            patch = image.crop((left, top, right, bottom))
-            patches.append(patch)
-            positions.append((row, col))
-
-    patch_tensors = torch.stack([preprocess(p) for p in patches]).to(device)
-
-    # image_features and compute logits_per_image
-    with torch.no_grad():
-        image_features = model.encode_image(patch_tensors)
-        image_features /= image_features.norm(dim=-1, keepdim=True)
-
-    all_image_features.append(image_features)  # [num_patches, 512]
-    all_positions.extend(positions)
-    all_grids.extend([grid] * len(patches))
+device = "cuda" if torch.cuda.is_available() else "cpu"
+Clip_model, preprocess = clip.load("ViT-B/32", device=device, download_root="clip/models")
+thresholds_df = pd.read_csv(thresholdsGEO_path)
 
 
-# gather all patches image features (after L2 norm): shape [total_patches, 512]
-# change list of tensor[1,512] patch to tensor shape [N_pachtes, 512]
-all_image_features = torch.cat(all_image_features, dim=0)  # combine all patches
-similarity_matrix = 100.0 * all_image_features @ text_features.T  # [N_patch, N_text]
-# print("the similarity matrix:\n", similarity_matrix)
-
-# check whether each text exists in the image. 
-detected_labels = []
-for t_idx, text in enumerate(target_texts):
-    sims = similarity_matrix[:, t_idx]
-    #print("sims:", sims)
-    max_sim, max_idx = sims.max(0)
-    max_pos = all_positions[max_idx]
-    max_grid = all_grids[max_idx]
-
-    if max_sim > threshold:
-        print(f"✅ Detected '{text}' at patch {max_pos} (grid={max_grid}), score = {max_sim.item():.3f}")
-        detected_labels.append(text)
-    else:
-        print(f"❌ '{text}' not found. Max similarity = {max_sim.item():.3f} patch{max_pos} (grid = {max_grid})")
-
-# output results of whether "text" exsits in image
-if detected_labels!=[]:
-    print("The speculated exsisting text in image are: \n", detected_labels)
+# ============ Prepare ======================
+# ======= target word, similarity threshold === vegetable, pumpkin, vehicle
+# if want to test many target words, 1. check whether in 18 categories, 2. set relative thred.
+target_word = "bowl"
+# refer to YOLOGlove pipeline how to get target relative threshold
+if target_word in thresholds_df["category"].values:
+    print(target_word, " is in our 18 categories, has trained threshold.")
+    threshold = thresholds_df[thresholds_df["category"] == target_word]["midpoint_threshold"].values[0]
 else:
-    print("NONE of them detected from this image.")
+    # no analyzed threshold for this target word 
+    threshold = 0
+print("Threshold used here is:", threshold)
 
+# ========== GET (GEO) grid-split patches from ONE image ==============     
+img = Image.open(img_path).convert("RGB")
+# Extract all patches and boxes   (grids: grid idx (List[int]), positions: List[Tuple[int, int]])
+boxes, geo_patches, grids, positions = extract_grid_patches_and_boxes(img, grid_sizes)
+
+# ======== show + store square patches on original img (for checking)=============== 
+square_box_img = draw_square_boxes_on_image(img, boxes)
+output_path = "output/GEO_grid_boxed.jpg"
+square_box_img.save(output_path)
+
+# =============== Input GEO gripd-split patches to CLIP ======================
+target_labels = [target_word]    # only the target task. Here we just use one input target object checking
+# ============== get text features by CLIP ======================
+text_tokens = clip.tokenize(target_labels).to(device)
+with torch.no_grad():
+    text_features = Clip_model.encode_text(text_tokens)
+    text_features /= text_features.norm(dim=-1, keepdim=True)
+
+# ========= get similarities of pacthes vs. target labels, For ONE image =========
+patches_text_simMatrix = get_patches_vs_targets_simMatrix_Clip(Clip_model, preprocess, text_features, 
+                                          geo_patches, device)
+patches_sims = patches_text_simMatrix[:,0] # get tensor sims of the only one text for N_patches
+
+patches_sims = patches_sims.tolist()
+
+# ========= find the index that sim >= threshold, and store idx in list
+overThred_idx = [i for i, val in enumerate(patches_sims) if val >= threshold]
+
+# ======== store patches that with sim >= threshold ========= [for checking]
+output_matchPatches_dir = "output/Oneimg_GEOmatched_patches/"
+os.makedirs(output_matchPatches_dir, exist_ok=True)
+# Assume: square_patches is a list of PIL.Image objects
+for idx in overThred_idx:
+    patch = geo_patches[idx]
+    sim_score = patches_sims[idx]
+    patch.save(os.path.join(output_matchPatches_dir, f"patch_{idx}_sim{sim_score:.2f}.png"))
+
+# ======= output result ======
+print("\n=== Final Judgment ===")
+if overThred_idx!=[]:
+    print(f"✅ image contains the target word. As there is at least one patches over the threshold.")
+    print("Target matched patches stored in folder: ", output_matchPatches_dir)
+else:
+    print("❌ NO target word object in this image.")

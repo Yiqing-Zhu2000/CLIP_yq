@@ -199,7 +199,7 @@ def get_YOLOsquare_pacthes(img, boxes):
     return yolo_square_patches
 
 # ============= for ONE of training images (related to method: YOLO square-> CLIP) ============
-def get_OneSignal_N_noiseSims_YOLOCLIP(bbox, pred_boxes,pred_labels, Clip_model, preprocess,
+def get_OneSignal_N_noiseSims_CLIP(bbox, pred_boxes, Clip_model, preprocess,
                                        yolo_square_patches, text_features, device):
     """
     Process one image to compute signal and noise similarities using YOLO and CLIP.
@@ -216,10 +216,10 @@ def get_OneSignal_N_noiseSims_YOLOCLIP(bbox, pred_boxes,pred_labels, Clip_model,
     matched_box_idx = -1
     max_iou = 0
     # Attenton! Here still use yolo pred_boxes to check IOU, instead of the boxes of squared_patches 
-    for i, (pred_box, label) in enumerate(zip(pred_boxes, pred_labels)):
+    for i, pred_box in enumerate(pred_boxes):
         iou = compute_iou(pred_box, bbox)
         # and iou >= 0.5
-        if iou > max_iou: # this is make sure: detected patch and target patch have at least 50% overlap
+        if iou > max_iou:    # this is make sure: detected patch and target patch have at least 50% overlap
             matched_box_idx = i
             max_iou = iou
     
@@ -232,13 +232,18 @@ def get_OneSignal_N_noiseSims_YOLOCLIP(bbox, pred_boxes,pred_labels, Clip_model,
 
     similarity_matrix = 100.0 * image_features @ text_features.T  # [N_patch, N_text]
     sims = similarity_matrix[:, 0]   # only one text for target label here
-    #print("sims:", sims)
-    # the most similar one with this target 
-    max_sim, max_idx = sims.max(0)      # sims is tensor here
-    signal_sim = max_sim
-    l_noise_sims = sims.tolist()
-    l_noise_sims.pop(max_idx)  # remove max_sim from original sims list. 
-    
+
+    # !!if finding the most matched_box_idx then 
+    signal_sim = sims[matched_box_idx].item() if matched_box_idx != -1 else None
+    # Q if there are 2 boxes both get high iou then ? -> use highest sim of matched as signal， 
+    # pop these 2 boxes and the rests are noise. 
+    l_noise_sims = sims.cpu().tolist()
+
+    if matched_box_idx != -1:
+        l_noise_sims.pop(matched_box_idx)  # remove signal similarity from noise list
+    else:
+        print("Warning: No matched box found. All similarities will be treated as noise.")
+
     return signal_sim, l_noise_sims
 
 # def get_OneSingal_N_noise_sim(target_vec, bbox, pred_boxes,pred_labels,glove_model):

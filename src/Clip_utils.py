@@ -6,7 +6,6 @@ import clip
 from PIL import Image
 import numpy as np
 
-
 def to_numpy_array(lst):
     """
     Convert a list of tensors or floats to a NumPy array.
@@ -55,4 +54,43 @@ def get_patches_vs_targets_simMatrix_Clip(Clip_model, preprocess, text_features,
     # Tips: similarity_matrix[:, 0]   # get tensor sims of the only one text for N_patches
     return similarity_matrix       # tensor matrix
 
+# ========= functions for geometric cropping method ==============
+def extract_grid_patches_and_boxes(image, grid_sizes):
+    """
+    Extract patches and corresponding bounding boxes from an image based on multiple grid sizes.
+
+    Args:
+        image (PIL.Image): Input image.
+        grid_sizes (List[int]): List of grid splits, e.g. [1, 2, 3, 4].
+
+    Returns:
+        boxes (List[List[int]]): List of [x1, y1, x2, y2] boxes for all patches.
+        patches (List[PIL.Image]): List of cropped patch images.
+        grids (List[int]): Grid size corresponding to each patch.
+        positions (List[Tuple[int, int]]): Row, col position in grid for each patch.
+    """
+    W, H = image.size
+    boxes = []
+    patches = []
+    grids = []
+    positions = []
+
+    for grid in grid_sizes:
+        patch_width = W // grid
+        patch_height = H // grid
+
+        for row in range(grid):
+            for col in range(grid):
+                x1 = col * patch_width
+                y1 = row * patch_height
+                x2 = (col + 1) * patch_width if col < grid - 1 else W
+                y2 = (row + 1) * patch_height if row < grid - 1 else H
+
+                patch = image.crop((x1, y1, x2, y2))
+                boxes.append([x1, y1, x2, y2])
+                patches.append(patch)
+                grids.append(grid)
+                positions.append((row, col))
+
+    return boxes, patches, grids, positions
 
