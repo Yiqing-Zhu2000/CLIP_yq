@@ -9,6 +9,7 @@ import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import clip
 from src.YOLO_utils import *
+from src.Clip_utils import to_numpy_array
 # Equal Error Rate
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve
@@ -79,8 +80,8 @@ for task, items in task_to_items.items():
         noise_sims.extend(list_noise_sims)
 
     # ======== compute threshold for this task =============
-    signal_distri = np.array(signal_sims)
-    noise_distri = np.array(noise_sims)
+    signal_distri = to_numpy_array(signal_sims)
+    noise_distri = to_numpy_array(noise_sims)
     mu_signal = np.mean(signal_distri)
     mu_noise = np.mean(noise_distri)
     midpoint_threshold = (mu_signal + mu_noise) / 2

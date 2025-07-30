@@ -235,10 +235,10 @@ sbatch Set_18thresholdsYOLO.sh
 ```
 zip -r Tmp.zip clip yolov8x.pt COCOSearch18-images-TP.zip src pipelines output requirements.txt
 ```
-2. For the YOLOclip.sh.sh file, I run my YOLOclip.sh.py, print the results. Some output images for checking would be store back to local. 
+2. For the YOLOclip.sh file, I run my YOLOclip.py, print the results. Some output images for checking would be store back to local. 
 ```
-chmod 600 YOLOclip.sh.sh
-sbatch YOLOclip.sh.sh
+chmod 600 YOLOclip.sh
+sbatch YOLOclip.sh
 ```
 
 

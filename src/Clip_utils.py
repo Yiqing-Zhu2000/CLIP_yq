@@ -7,6 +7,27 @@ from PIL import Image
 import numpy as np
 
 
+def to_numpy_array(lst):
+    """
+    Convert a list of tensors or floats to a NumPy array.
+    Works for both scalar and batch tensors, on CPU or GPU.
+
+    Note: If the input list contains tensors with inconsistent shapes,
+    the returned NumPy array will have dtype=object, which may not behave as expected in downstream operations
+    Args:
+        lst (list): List of torch.Tensors or floats.
+    Returns:
+        np.ndarray: Converted NumPy array.
+    """
+    out = []
+    for x in lst:
+        if isinstance(x, torch.Tensor):
+            x = x.detach().cpu()
+            out.append(x.item() if x.numel() == 1 else x.numpy())
+        else:
+            out.append(x)
+    return np.array(out)
+
 # ========= get similarities of pacthes vs. target labels, For ONE image =========
 def get_patches_vs_targets_simMatrix_Clip(Clip_model, preprocess, text_features, 
                                           patches, device):

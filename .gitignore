@@ -10,7 +10,7 @@ thumbs.db
 .idea
 
 clip/models/
-Tmp.zip
+*.zip
 *.out
 
 house_patches_final/
@@ -19,4 +19,3 @@ yoloOutput/
 images/
 output/yolo_boxed.jpg
 *.pt
-output/
