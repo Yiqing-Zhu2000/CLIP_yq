@@ -234,15 +234,17 @@ def get_OneSignal_N_noiseSims_CLIP(bbox, pred_boxes, Clip_model, preprocess,
     sims = similarity_matrix[:, 0]   # only one text for target label here
 
     # !!if finding the most matched_box_idx then 
-    signal_sim = sims[matched_box_idx].item() if matched_box_idx != -1 else None
     # Q if there are 2 boxes both get high iou then ? -> use highest sim of matched as signal， 
     # pop these 2 boxes and the rests are noise. 
-    l_noise_sims = sims.cpu().tolist()
-
     if matched_box_idx != -1:
-        l_noise_sims.pop(matched_box_idx)  # remove signal similarity from noise list
+        signal_sim = sims[matched_box_idx].item()
+        l_noise_sims = sims.cpu().tolist()
+        l_noise_sims.pop(matched_box_idx)
     else:
-        print("Warning: No matched box found. All similarities will be treated as noise.")
+        signal_sim = 0.0      # Attention!: it can be not matched! if iou = 0 for all detected yolo patches
+        # I just temp. put 0.0 here (actually None)
+        l_noise_sims = sims.cpu().tolist()  # treat all as noise
+        print("Warning: No matched box found. All similarities are treated as noise.")
 
     return signal_sim, l_noise_sims
 
