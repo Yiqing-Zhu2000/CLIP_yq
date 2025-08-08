@@ -38,7 +38,7 @@ task_to_items = group_by_task(deduplicated_data)
 thresholds_result = {}
 for task, items in task_to_items.items():
 
-    items = items[:3]  # ← only use the first 3 samples of each category JUST for local test
+    # items = items[:3]  # ← only use the first 3 samples of each category JUST for local test
     
     # for this task, collect singal vs noise sims.
     signal_sims, noise_sims = [], []
