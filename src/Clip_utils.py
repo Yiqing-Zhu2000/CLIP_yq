@@ -5,6 +5,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import clip
 from PIL import Image
 import numpy as np
+from pathlib import Path
+from typing import List, Dict, Any
+import json
 
 def to_numpy_array(lst):
     """
@@ -50,7 +53,7 @@ def get_patches_vs_targets_simMatrix_Clip(Clip_model, preprocess, text_features,
         image_features = Clip_model.encode_image(patch_tensors)
         image_features /= image_features.norm(dim=-1, keepdim=True)
 
-    similarity_matrix = 100.0 * image_features @ text_features.T  # [N_patch, N_text]
+    similarity_matrix = image_features @ text_features.T  # [N_patch, N_text]
     # Tips: similarity_matrix[:, 0]   # get tensor sims of the only one text for N_patches
     return similarity_matrix       # tensor matrix
 
@@ -64,7 +67,7 @@ def extract_grid_patches_and_boxes(image, grid_sizes):
         grid_sizes (List[int]): List of grid splits, e.g. [1, 2, 3, 4].
 
     Returns:
-        boxes (List[List[int]]): List of [x1, y1, x2, y2] boxes for all patches.
+        boxes (List[List[int]]): List of [x1, y1, x2, y2] boxes for all patches. Same structure as YOLO pred_boxes
         patches (List[PIL.Image]): List of cropped patch images.
         grids (List[int]): Grid size corresponding to each patch.
         positions (List[Tuple[int, int]]): Row, col position in grid for each patch.
@@ -94,3 +97,44 @@ def extract_grid_patches_and_boxes(image, grid_sizes):
 
     return boxes, patches, grids, positions
 
+
+# =========== store ALL sims for training data ===================
+def make_item(
+    task: str,
+    name: str,
+    bbox: List[float],
+    # pred_labels: List[str],
+    pred_boxes: List[List[float]],
+    similarities: List[float],
+    signal_matched_index: int
+) -> Dict[str, Any]:
+    return {
+        "task": task,
+        "name": name,
+        "bbox": bbox,  # [x, y, w, h]
+        # "pred_labels": pred_labels,
+        "pred_boxes": pred_boxes,          # [[x1,y1,x2,y2], ...]
+        "similarities": similarities,      # [float, ...]
+        "signal_matched_index": signal_matched_index
+    }
+
+# ========= store above sims items to .json =======================
+def to_jsonable(x):
+    if isinstance(x, np.ndarray):
+        return x.tolist()
+    if isinstance(x, (np.floating, np.integer)):
+        return x.item()
+    if isinstance(x, torch.Tensor):
+        return x.detach().cpu().tolist()
+    if isinstance(x, dict):
+        return {k: to_jsonable(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [to_jsonable(v) for v in x]
+    return x  # 原生类型直接返回
+
+def save_sims_to_json(path: str, items: List[Dict[str, Any]]) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    clean = to_jsonable(items)
+    with path.open("w", encoding="utf-8") as f:
+        json.dump(clean, f, ensure_ascii=False, indent=2)

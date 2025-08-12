@@ -216,6 +216,17 @@ Note that the `C` value should be determined via a hyperparameter sweep using a 
 We use them on COCO Search18 dataset. Since I would use ComputeCanada to get results, here are steps for each pipelines
 
 ### YOLO_CLIP (Set thresholds for 18 categories based on training data(70%))
+- Store cosine similarities between detected patches' labels with task, in `YOLOCLIP_train_sims.json` file. Each item format (an example for the structure): 
+```
+{
+  'task' : 'bottle',                     # target category (18 total)
+  'name' : '000000478726.jpg',           # image name
+  'bbox' : [1063, 68, 95, 334],          # [x, y, w, h] bounding box of the target object in the image
+  'pred_boxes'  : [[...],[...],[...],[...],[...]],               # list of YOLO detected boxes eg. [x1,y1,x2,y2]
+  'similarities': [0.1848, 0.3203, 1.0000, 0.6230, 0.2622],      # per detection sim (YOLO_square_patches vs. task_text)
+  'signal_matched_index': 2,             # index of the detection that matches the signal; -1 if none
+}
+```
 - Use ComputeCanada to get the similarity thresholds and store them into an `output/category_YOLOClip_thresholds.csv`.
 - prepare for submit to ComputeCanada.
 1. zip the necessary data, models, and codes in this way
@@ -242,7 +253,22 @@ sbatch YOLOclip.sh
 ```
 
 
+
+
+
+
 ### GEO_CLIP (Set thresholds for 18 categories based on training data(70%))
+- Store cosine similarities between detected patches' labels with task, in `GEOCLIP_train_sims.json` file. Each item format (an example for the structure): 
+```
+{
+  'task' : 'bottle',                     # target category (18 total)
+  'name' : '000000478726.jpg',           # image name
+  'bbox' : [1063, 68, 95, 334],          # [x, y, w, h] bounding box of the target object in the image
+  'pred_boxes'  : [[...],[...],[...],[...],[...]],               # list of GEO_cropped boxes eg. [x1,y1,x2,y2]
+  'similarities': [0.1848, 0.3203, 1.0000, 0.6230, 0.2622],      # per detection sim (GEO_crop_patches vs. task_text)
+  'signal_matched_index': 2,             # index of the detection that matches the signal; -1 if none
+}
+```
 - Use ComputeCanada to get the similarity thresholds and store them into an `output/category_GEOClip_thresholds.csv`.
 - prepare for submit to ComputeCanada.
 1. zip the necessary data, models, and codes in this way

@@ -230,8 +230,11 @@ def get_OneSignal_N_noiseSims_CLIP(bbox, pred_boxes, Clip_model, preprocess,
         image_features = Clip_model.encode_image(patch_tensors)
         image_features /= image_features.norm(dim=-1, keepdim=True)
 
-    similarity_matrix = 100.0 * image_features @ text_features.T  # [N_patch, N_text]
+    similarity_matrix = image_features @ text_features.T  # [N_patch, N_text]
     sims = similarity_matrix[:, 0]   # only one text for target label here
+
+    # contain sims of all patches with task. 
+    total_sims = sims.cpu().tolist()
 
     # !!if finding the most matched_box_idx then 
     # Q if there are 2 boxes both get high iou then ? -> use highest sim of matched as signal， 
@@ -246,7 +249,7 @@ def get_OneSignal_N_noiseSims_CLIP(bbox, pred_boxes, Clip_model, preprocess,
         l_noise_sims = sims.cpu().tolist()  # treat all as noise
         print("Warning: No matched box found. All similarities are treated as noise.")
 
-    return signal_sim, l_noise_sims
+    return signal_sim, l_noise_sims, total_sims, matched_box_idx
 
 # def get_OneSingal_N_noise_sim(target_vec, bbox, pred_boxes,pred_labels,glove_model):
 #     """

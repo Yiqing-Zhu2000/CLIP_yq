@@ -8,11 +8,13 @@ import json
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import clip
 from src.YOLO_utils import *
-from src.Clip_utils import to_numpy_array
+from src.Clip_utils import to_numpy_array, make_item, save_sims_to_json
 # Equal Error Rate
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve
 import pandas as pd
+from pathlib import Path
+from typing import List, Dict, Any
 import csv
 
 
@@ -26,9 +28,11 @@ os.makedirs(output_dir, exist_ok=True)
 YOLO_model = YOLO('yolov8x.pt')
 device = "cuda" if torch.cuda.is_available() else "cpu"
 Clip_model, preprocess = clip.load("ViT-B/32", device=device, download_root="clip/models")
-
 with open(json_path, "r") as f:
     deduplicated_data = json.load(f)
+# create an empty new json file to store training data similarities. 
+ALLsims_items : List[Dict[str, Any]] = []
+
 
 # Group items by task
 task_to_items = group_by_task(deduplicated_data)
@@ -72,11 +76,24 @@ for task, items in task_to_items.items():
 
         # for each img for this task, based on yolo pred_boxes to match with ground truth bbox for img
         # get the most matching yolo box by iou, the corresponding yolo square box is for signal sim.
-        signal_sim, list_noise_sims = get_OneSignal_N_noiseSims_CLIP(bbox, pred_boxes, Clip_model, preprocess,
+        signal_sim, list_noise_sims, total_sims, matched_box_idx = get_OneSignal_N_noiseSims_CLIP(bbox, pred_boxes, Clip_model, preprocess,
                                        yolo_square_patches, text_features, device)
         
         signal_sims.append(signal_sim)
         noise_sims.extend(list_noise_sims)
+
+        # store sims for this image to  
+        ALLsims_items.append(make_item(
+            task=task,
+            name=img_name,
+            bbox=bbox,
+            # pred_labels=pred_labels,
+            # pred_boxes = YOLO predicted boxes, 
+            # As YOLO_square_patches are directed cropped store as images and input to CLIP images part. 
+            pred_boxes=pred_boxes,      
+            similarities=total_sims,
+            signal_matched_index=matched_box_idx
+        ))
 
     # ======== compute threshold for this task =============
     signal_distri = to_numpy_array(signal_sims)
@@ -116,3 +133,8 @@ df.reset_index(inplace=True)  # move category back to a column
 df.to_csv(csv_path, index=False)   # float_format="%.4f"
 
 print("\nThreshold computation complete. Results saved to:", csv_path)
+
+# Save similarities to .json file
+ALLsims_SavePath = os.path.join(output_dir, "YOLOCLIP_train_sims.json")
+save_sims_to_json(ALLsims_SavePath, ALLsims_items)
+print(f"Saved {len(ALLsims_items)} ALLsims_items to: {ALLsims_SavePath}")
